@@ -18,20 +18,43 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-h2console'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'com.h2database:h2'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testCompileOnly 'org.projectlombok:lombok'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testAnnotationProcessor 'org.projectlombok:lombok'
-}
+		// 웹 API 개발
+		implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
+		// JPA를 이용한 데이터베이스 접근
+		implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+		// 요청 데이터 검증
+		implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+		// H2 데이터베이스 콘솔
+		runtimeOnly 'com.h2database:h2'
+
+		// Lombok
+		compileOnly 'org.projectlombok:lombok'
+		annotationProcessor 'org.projectlombok:lombok'
+
+		// 테스트
+		testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+		testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+		testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+		testCompileOnly 'org.projectlombok:lombok'
+		testAnnotationProcessor 'org.projectlombok:lombok'
+		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+		implementation 'org.springframework.boot:spring-boot-h2console'
+
+		// QueryDSL 버전
+	def querydslVersion = '7.1'
+
+	// QueryDSL JPA
+	implementation "io.github.openfeign.querydsl:querydsl-jpa:${querydslVersion}"
+
+	// QueryDSL Q 클래스 자동 생성
+	annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:${querydslVersion}:jpa"
+	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+	}
+
+
 
 tasks.named('test') {
 	useJUnitPlatform()
