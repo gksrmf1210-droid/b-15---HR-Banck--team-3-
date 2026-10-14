@@ -21,6 +21,9 @@ dependencies {
 		// 웹 API 개발
 		implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
+	// Swagger UI 및 OpenAPI 문서 생성
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+
 		// JPA를 이용한 데이터베이스 접근
 		implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
