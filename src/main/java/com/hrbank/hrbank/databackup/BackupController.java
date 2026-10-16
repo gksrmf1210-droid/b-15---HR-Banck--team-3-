@@ -16,37 +16,43 @@ import org.springframework.web.bind.annotation.RestController;
 public class BackupController {
 
   private final BackupHistoryRepository historyRepository;
-  // TODO: BackupService 구현 후 주입하여 연결
-  // private final BackupService backupService;
+  private final BackupService backupService;
 
-  /**
-   * 백업 이력 목록 조회 API (Querydsl 커서 페이징 + 필터 검색)
-   * GET /api/backups/histories
-   */
-  @GetMapping("/histories")
-  public ResponseEntity<List<BackupHistoryResponse>> getHistories(
+// 1. 데이터 백업 목록 조회 API (Querydsl 커서 페이징 + 필터 검색)
+
+  @GetMapping
+  public ResponseEntity<CursorPageResponseBackupDto> getBackups(
       @ModelAttribute BackupHistorySearchRequest request) {
 
-    List<BackupHistoryResponse> response = historyRepository.searchHistories(request);
-    return ResponseEntity.ok(response);
+    // null 체크를 빼고 0 초과 여부만 확인
+    int size = (request.getSize() > 0) ? request.getSize() : 10;
+    List<BackupHistoryResponse> results = historyRepository.searchHistories(request);
+
+    return ResponseEntity.ok(CursorPageResponseBackupDto.of(results, size));
   }
 
-  /**
-   * 수동 데이터 백업 실행 API (작업자: 요청자 IP 주소)
-   * POST /api/backups
-   */
+ //2. 수동 데이터 백업 실행 API (작업자: 요청자 IP 주소)
+
   @PostMapping
   public ResponseEntity<Void> triggerBackup(HttpServletRequest request) {
     String clientIp = extractClientIp(request);
-
-    // backupService.executeBackup(clientIp);
-
+    backupService.executeBackup(clientIp);
     return ResponseEntity.accepted().build();
   }
 
-  /**
-   * 프록시, L4/L7 로드밸런서 환경을 고려한 클라이언트 IP 추출
-   */
+
+  //3. 최근 백업 정보 조회 API (대시보드 위젯 연동)
+
+  @GetMapping("/latest")
+  public ResponseEntity<BackupHistoryResponse> getLatestBackup() {
+    return historyRepository.findTopByOrderByIdDesc()
+        .map(BackupHistoryResponse::from)
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.noContent().build());
+  }
+
+// 프록시, L4/L7 로드밸런서 환경을 고려한 클라이언트 IP 추출
+
   private String extractClientIp(HttpServletRequest request) {
     String ip = request.getHeader("X-Forwarded-For");
     if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {

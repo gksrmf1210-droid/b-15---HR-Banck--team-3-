@@ -8,4 +8,6 @@ public interface BackupHistoryRepository extends JpaRepository<BackupHistoryEnti
 
 
   Optional<BackupHistoryEntity> findTopByStatusOrderByEndedAtDesc(BackupStatus status);
+
+  Optional<BackupHistoryEntity> findTopByOrderByIdDesc();
 }
