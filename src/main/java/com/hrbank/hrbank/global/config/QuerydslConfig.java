@@ -1,4 +1,4 @@
-package com.hrbank.hrbank.config;
+package com.hrbank.hrbank.global.config;
 
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
