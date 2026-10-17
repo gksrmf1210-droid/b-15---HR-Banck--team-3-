@@ -1,6 +1,4 @@
 package com.hrbank.hrbank.department.controller;
-
-
 import com.hrbank.hrbank.department.dto.DepartmentCreateRequest;
 import com.hrbank.hrbank.department.dto.DepartmentDto;
 import com.hrbank.hrbank.department.dto.DepartmentUpdateRequest;
@@ -9,7 +7,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/departments")
