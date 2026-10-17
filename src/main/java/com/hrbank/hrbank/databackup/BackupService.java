@@ -2,6 +2,7 @@ package com.hrbank.hrbank.databackup;
 
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.repository.EmployeeRepository;
+import jakarta.persistence.EntityManager;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -23,6 +24,7 @@ public class BackupService {
   private final BackupHistoryRepository historyRepository;
   private final BackupHistoryWriter historyWriter;
   private final EmployeeRepository employeeRepository;
+  private final EntityManager entityManager;
 
   public void executeBackup(String worker) {
     // -------------------------------------------------------------------------
@@ -77,11 +79,19 @@ public class BackupService {
       // STEP.4-2 에러 로그를 .log 파일로 생성 및 실패 처리
       Long errorLogFileId = storeErrorLog(e);
       historyWriter.fail(historyId, errorLogFileId);
+    } finally {
+      // 업로드 성공 후에도 로컬 임시 CSV 파일 정리
+      if (tempCsvPath != null) {
+        try {
+          Files.deleteIfExists(tempCsvPath);
+        } catch (Exception ignored) {}
+      }
     }
   }
 
   /**
-   * OOM 방지: 커서(ID) 기반으로 500건씩 분할 조회하여 파일 스트림에 즉시 기록
+   * OOM 방지: 커서(ID) 기반으로 500건씩 분할 조회하여 파일 스트림에 즉시 기록하고
+   * JPA 1차 캐시를 비워 힙 메모리 점유를 방지함
    */
   private void writeEmployeesToCsv(Path filePath) throws Exception {
     try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
@@ -112,7 +122,8 @@ public class BackupService {
           ));
           lastId = emp.getId();
         }
-        writer.flush(); // 버퍼 비우기 (메모리 점유 방지)
+        writer.flush();         // 버퍼 비우기 (디스크 기록)
+        entityManager.clear();  // ★ JPA 1차 캐시 초기화 (OOM 방지 핵심)
       }
     }
   }

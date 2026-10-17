@@ -10,17 +10,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BackupScheduler {
 
-  // TODO: BackupService 구현 후 주입
-  // private final BackupService backupService;
+  private final BackupService backupService;
 
-  /**
-   * 1시간(기본 3,600,000ms)마다 백업 자동 실행
-   * application.yml의 backup.schedule.rate 설정으로 주기 변경 가능
-   */
   @Scheduled(fixedRateString = "${backup.schedule.rate:3600000}")
   public void runScheduledBackup() {
     log.info("정기 데이터 백업 스케줄러 실행 (작업자: system)");
-
-    // backupService.executeBackup("system");
+    backupService.executeBackup("system");
   }
 }

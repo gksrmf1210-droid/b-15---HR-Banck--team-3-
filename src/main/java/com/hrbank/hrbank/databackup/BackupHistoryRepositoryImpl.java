@@ -20,6 +20,8 @@ public class BackupHistoryRepositoryImpl implements BackupHistoryRepositoryCusto
 
   @Override
   public List<BackupHistoryResponse> searchHistories(BackupHistorySearchRequest request) {
+    int size = (request.getSize() > 0) ? request.getSize() : 10;
+
     return queryFactory
         .select(Projections.constructor(
             BackupHistoryResponse.class,
@@ -35,10 +37,10 @@ public class BackupHistoryRepositoryImpl implements BackupHistoryRepositoryCusto
             workerContains(request.getWorker()),
             statusEq(request.getStatus()),
             startedAtBetween(request.getStartedAtFrom(), request.getStartedAtTo()),
-            cursorCondition(request.getLastId()) // 이전 페이지 마지막 ID 기반 No-offset
+            cursorCondition(request.getLastId(), request.getDirection()) // ASC/DESC 반영
         )
         .orderBy(createOrderSpecifier(request.getSortBy(), request.getDirection()))
-        .limit(request.getSize())
+        .limit(size + 1) // ★ 다음 페이지 여부 판별을 위해 1건 더 조회
         .fetch();
   }
 
@@ -66,9 +68,12 @@ public class BackupHistoryRepositoryImpl implements BackupHistoryRepositoryCusto
     return null;
   }
 
-  // 4. No-offset 커서 페이징 (기본 최신순 내림차순: id < lastId)
-  private BooleanExpression cursorCondition(Long lastId) {
-    return lastId != null ? backupHistoryEntity.id.lt(lastId) : null;
+  private BooleanExpression cursorCondition(Long lastId, String direction) {
+    if (lastId == null) {
+      return null;
+    }
+    boolean isAsc = "ASC".equalsIgnoreCase(direction);
+    return isAsc ? backupHistoryEntity.id.gt(lastId) : backupHistoryEntity.id.lt(lastId);
   }
 
   // 5. 단일 정렬 조건 (startedAt 또는 endedAt)
