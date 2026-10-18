@@ -1,6 +1,5 @@
 package com.hrbank.hrbank.employee.dto;
 
-import com.hrbank.hrbank.department.entity.Department;
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.entity.EmployeeStatus;
 import lombok.AllArgsConstructor;

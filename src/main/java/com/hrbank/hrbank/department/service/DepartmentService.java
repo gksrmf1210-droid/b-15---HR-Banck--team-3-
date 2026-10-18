@@ -26,7 +26,6 @@ public class DepartmentService {
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
 
-    @Transactional
     public DepartmentDto create(DepartmentCreateRequest request) {
         if (departmentRepository.existsByName(request.getName())) {
             throw new DuplicateDepartmentNameException(request.getName());
