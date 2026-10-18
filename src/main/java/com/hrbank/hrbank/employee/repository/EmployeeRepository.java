@@ -7,7 +7,9 @@ import java.util.Optional;
 
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-
+    boolean existsByEmail(String email);
+    boolean existsByEmailAndIdNot(String email, Long id);
+    boolean existsByDepartmentId(Long departmentId);
     Long countByDepartmentId(Long departmentId);
     Optional<Employee> findTopByEmployeeNumberStartingWithOrderByEmployeeNumberDesc(String prefix);
 }
