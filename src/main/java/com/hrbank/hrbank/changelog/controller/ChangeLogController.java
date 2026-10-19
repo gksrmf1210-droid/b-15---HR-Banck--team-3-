@@ -25,14 +25,14 @@ public class ChangeLogController {
         return changeLogService.search(request);
     }
 
-    // 단건 상세 조회 API
+    // 이력 상세 변경 내용 조회
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getChangeLogDetail(@PathVariable Long id) {
         Map<String, Object> response = changeLogService.getId(id);
         return ResponseEntity.ok(response);
     }
 
-    // 수정 이력 건수 조회 API
+    // 최근 일주일 수정 이력 건수
     @GetMapping("/count")
     public ResponseEntity<Long> getChangeLogsCount(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,

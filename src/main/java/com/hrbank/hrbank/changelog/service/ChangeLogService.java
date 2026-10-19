@@ -100,7 +100,7 @@ public class ChangeLogService {
     public void recordUpdate(String employeeNumber, ChangeLogRequest request,
                              String memo, String ipAddress) {
 
-        Employee emp = employeeRepository.findByEmployeeNumber(employeeNumber)
+        Employee emp = employeeRepository.findTopByEmployeeNumberStartingWithOrderByEmployeeNumberDesc(employeeNumber)
                 .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
 
         Map<String, String> beforeMap = toSnapshot(emp);                  // 직원 변경 전 값
