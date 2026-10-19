@@ -68,4 +68,9 @@ public class FileService {
        fileMetaService.deleteById(fileId);
 }
 
+public FileMeta findMetadata(UUID fileId) {
+       return fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException("파일 정볼르 찾을 수 없습니다." + fileId));
+
+}
+
 }
