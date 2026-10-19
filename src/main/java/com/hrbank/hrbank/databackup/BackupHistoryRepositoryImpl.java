@@ -17,10 +17,14 @@ public class BackupHistoryRepositoryImpl implements BackupHistoryRepositoryCusto
 
   private final JPAQueryFactory queryFactory;
 
-
   @Override
   public List<BackupHistoryResponse> searchHistories(BackupHistorySearchRequest request) {
     int size = (request.getSize() > 0) ? request.getSize() : 10;
+    boolean isAsc = "ASC".equalsIgnoreCase(request.getDirection());
+    String sortBy = "endedAt".equalsIgnoreCase(request.getSortBy()) ? "endedAt" : "startedAt";
+
+    // 1. lastId가 전달된 경우, 기준이 되는 행의 시간값을 조회
+    LocalDateTime targetTime = findTargetTimeByLastId(request.getLastId(), sortBy);
 
     return queryFactory
         .select(Projections.constructor(
@@ -37,26 +41,72 @@ public class BackupHistoryRepositoryImpl implements BackupHistoryRepositoryCusto
             workerContains(request.getWorker()),
             statusEq(request.getStatus()),
             startedAtBetween(request.getStartedAtFrom(), request.getStartedAtTo()),
-            cursorCondition(request.getLastId(), request.getDirection()) // ASC/DESC 반영
+            // 2. 시간 + ID 복합 커서 조건 적용
+            cursorCondition(request.getLastId(), targetTime, sortBy, isAsc)
         )
-        .orderBy(createOrderSpecifier(request.getSortBy(), request.getDirection()))
-        .limit(size + 1) // ★ 다음 페이지 여부 판별을 위해 1건 더 조회
+        // 3. 동일 시간 데이터에 대비해 id를 2차 정렬 조건으로 추가
+        .orderBy(createOrderSpecifiers(sortBy, isAsc))
+        .limit(size + 1)
         .fetch();
   }
 
-  // 1. 작업자 부분 일치
+  /**
+   * 커서 기준 레코드(lastId)의 정렬 기준 시간 조회
+   */
+  private LocalDateTime findTargetTimeByLastId(Long lastId, String sortBy) {
+    if (lastId == null) {
+      return null;
+    }
+    return queryFactory
+        .select("endedAt".equals(sortBy) ? backupHistoryEntity.endedAt : backupHistoryEntity.startedAt)
+        .from(backupHistoryEntity)
+        .where(backupHistoryEntity.id.eq(lastId))
+        .fetchOne();
+  }
+
+  /**
+   * 복합 커서 조건 생성
+   * - 내림차순(DESC): (시간 < targetTime) OR (시간 == targetTime AND id < lastId)
+   * - 오름차순(ASC) : (시간 > targetTime) OR (시간 == targetTime AND id > lastId)
+   */
+  private BooleanExpression cursorCondition(Long lastId, LocalDateTime targetTime, String sortBy, boolean isAsc) {
+    if (lastId == null || targetTime == null) {
+      return null;
+    }
+
+    var timePath = "endedAt".equals(sortBy) ? backupHistoryEntity.endedAt : backupHistoryEntity.startedAt;
+
+    if (isAsc) {
+      return timePath.gt(targetTime)
+          .or(timePath.eq(targetTime).and(backupHistoryEntity.id.gt(lastId)));
+    } else {
+      return timePath.lt(targetTime)
+          .or(timePath.eq(targetTime).and(backupHistoryEntity.id.lt(lastId)));
+    }
+  }
+
+  /**
+   * 1차 정렬(시간) + 2차 정렬(ID)로 정렬 순서 고정
+   */
+  private OrderSpecifier<?>[] createOrderSpecifiers(String sortBy, boolean isAsc) {
+    var timePath = "endedAt".equalsIgnoreCase(sortBy) ? backupHistoryEntity.endedAt : backupHistoryEntity.startedAt;
+
+    return new OrderSpecifier<?>[] {
+        isAsc ? timePath.asc() : timePath.desc(),
+        isAsc ? backupHistoryEntity.id.asc() : backupHistoryEntity.id.desc()
+    };
+  }
+
   private BooleanExpression workerContains(String worker) {
     return (worker != null && !worker.isBlank())
         ? backupHistoryEntity.worker.contains(worker.trim())
         : null;
   }
 
-  // 2. 상태 완전 일치
   private BooleanExpression statusEq(BackupStatus status) {
     return status != null ? backupHistoryEntity.status.eq(status) : null;
   }
 
-  // 3. 시작 시간 범위 조건
   private BooleanExpression startedAtBetween(LocalDateTime from, LocalDateTime to) {
     if (from != null && to != null) {
       return backupHistoryEntity.startedAt.between(from, to);
@@ -66,24 +116,5 @@ public class BackupHistoryRepositoryImpl implements BackupHistoryRepositoryCusto
       return backupHistoryEntity.startedAt.loe(to);
     }
     return null;
-  }
-
-  private BooleanExpression cursorCondition(Long lastId, String direction) {
-    if (lastId == null) {
-      return null;
-    }
-    boolean isAsc = "ASC".equalsIgnoreCase(direction);
-    return isAsc ? backupHistoryEntity.id.gt(lastId) : backupHistoryEntity.id.lt(lastId);
-  }
-
-  // 5. 단일 정렬 조건 (startedAt 또는 endedAt)
-  private OrderSpecifier<?> createOrderSpecifier(String sortBy, String direction) {
-    boolean isAsc = "ASC".equalsIgnoreCase(direction);
-
-    if ("endedAt".equalsIgnoreCase(sortBy)) {
-      return isAsc ? backupHistoryEntity.endedAt.asc() : backupHistoryEntity.endedAt.desc();
-    }
-    // 기본값: startedAt
-    return isAsc ? backupHistoryEntity.startedAt.asc() : backupHistoryEntity.startedAt.desc();
   }
 }
