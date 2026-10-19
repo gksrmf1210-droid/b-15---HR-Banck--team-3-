@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.UUID;
 
-import static com.hrbank.hrbank.entity.QFileMeta.fileMeta;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -151,6 +150,43 @@ public class FileServiceTest {
 
         verify(fileMetaService).findById(fileId);
         verify(fileStorage, never()).load(fileId);
+    }
+
+    @Test
+    void deleteRemovesFileAndMetadata() throws IOException {
+
+        UUID fileId = UUID.randomUUID();
+
+        FileMeta fileMeta = new FileMeta(
+                fileId,
+                "test.txt",
+                "text/plain",
+                4
+        );
+
+        when(fileMetaService.findById(fileId)).thenReturn(java.util.Optional.of(fileMeta));
+
+        fileService.delete(fileId);
+
+        verify(fileStorage).delete(fileId);
+        verify(fileMetaService).deleteById(fileId);
+
+
+    }
+
+    @Test
+    void deleteThrowsExceptionWhenMetadataDoesNotExist() throws IOException {
+
+        UUID fileId = UUID.randomUUID();
+
+        when(fileMetaService.findById(fileId)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(
+                IllegalArgumentException.class, () -> fileService.delete(fileId)
+        );
+
+        verify(fileStorage, never()).delete(fileId);
+        verify(fileMetaService, never()).deleteById(fileId);
     }
 
 

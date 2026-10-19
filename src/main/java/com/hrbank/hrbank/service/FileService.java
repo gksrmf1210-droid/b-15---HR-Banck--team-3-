@@ -57,4 +57,15 @@ public class FileService {
        return fileStorage.load(fileId);
     }
 
+
+    public void delete(UUID fileId) throws IOException {
+
+       fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException("파일 정보를 찾을 수 없습니다" + fileId)
+       );
+
+       fileStorage.delete(fileId);
+
+       fileMetaService.deleteById(fileId);
+}
+
 }

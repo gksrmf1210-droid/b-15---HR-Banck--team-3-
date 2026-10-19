@@ -1,4 +1,4 @@
-package storege;
+package com.hrbank.hrbank.storege;
 
 import com.hrbank.hrbank.storage.LocalFileStorage;
 import org.junit.jupiter.api.Test;
