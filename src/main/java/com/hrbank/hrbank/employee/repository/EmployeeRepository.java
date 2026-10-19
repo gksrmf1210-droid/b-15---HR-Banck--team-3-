@@ -17,4 +17,10 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     boolean existsByDepartmentId(Long departmentId);
     Long countByDepartmentId(Long departmentId);
     Optional<Employee> findTopByEmployeeNumberStartingWithOrderByEmployeeNumberDesc(String prefix);
+
+
+    boolean existsByUpdatedAtAfter(LocalDateTime lastCompletedAt);
+
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.department WHERE e.id > :lastId ORDER BY e.id ASC")
+    List<Employee> findEmployeesChunk(@Param("lastId") Long lastId, Pageable pageable);
 }
