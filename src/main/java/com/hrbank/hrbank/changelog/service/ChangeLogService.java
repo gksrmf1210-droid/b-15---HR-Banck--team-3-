@@ -9,6 +9,7 @@ import com.hrbank.hrbank.changelog.repository.ChangeLogDiffRepository;
 import com.hrbank.hrbank.changelog.repository.ChangeLogRepository;
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.repository.EmployeeRepository;
+import com.hrbank.hrbank.global.exception.EmployeeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -97,16 +98,16 @@ public class ChangeLogService {
 
 
     @Transactional
-    public void recordUpdate(String employeeNumber, ChangeLogRequest request,
+    public void recordUpdate(long employeeNumber, ChangeLogRequest request,
                              String memo, String ipAddress) {
 
-        Employee emp = employeeRepository.findTopByEmployeeNumberStartingWithOrderByEmployeeNumberDesc(employeeNumber)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+        Employee emp = employeeRepository.findById(employeeNumber)
+                .orElseThrow(() -> new EmployeeNotFoundException(employeeNumber));
 
         Map<String, String> beforeMap = toSnapshot(emp);                  // 직원 변경 전 값
         Map<String, String> afterMap = request.toPropertyMap();            // 요청 값
 
-        ChangeLog log = new ChangeLog(ChangeLog.ChangeType.UPDATED, employeeNumber, memo, ipAddress);
+        ChangeLog log = new ChangeLog(ChangeLog.ChangeType.UPDATED, emp.getEmployeeNumber(), memo, ipAddress);
 
         for (String key : beforeMap.keySet()) {
             String b = beforeMap.get(key);
