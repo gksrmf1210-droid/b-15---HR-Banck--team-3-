@@ -1,6 +1,7 @@
 package com.hrbank.hrbank.databackup;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record BackupHistoryResponse(
     Long id,
@@ -8,7 +9,7 @@ public record BackupHistoryResponse(
     BackupStatus status,
     LocalDateTime startedAt,
     LocalDateTime endedAt,
-    Long backupFileId
+    UUID backupFileId
 ) {
   public static BackupHistoryResponse from(BackupHistoryEntity entity) {
     return new BackupHistoryResponse(
