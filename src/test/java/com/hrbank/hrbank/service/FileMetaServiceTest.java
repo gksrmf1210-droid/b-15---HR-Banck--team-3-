@@ -4,6 +4,7 @@ package com.hrbank.hrbank.service;
 
 import com.hrbank.hrbank.entity.FileMeta;
 import com.hrbank.hrbank.repository.FileMetaRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,7 +28,8 @@ public class FileMetaServiceTest {
     private FileMetaService fileMetaService;
 
     @Test
-    void 파일_메타데이터를_저장한다() {
+    @DisplayName("파일 메타데이터를 저장한다")
+    void FileMetaData() {
 
         UUID fileId = UUID.randomUUID();
         FileMeta fileMeta = new FileMeta(fileId, "profile.png", "image/png", 1024L);
@@ -44,7 +46,8 @@ public class FileMetaServiceTest {
     }
 
     @Test
-    void 파일_ID로_메타데이터를_조회한다() {
+    @DisplayName("파일 ID로 메타데이터를 조회한다")
+    void fileId() {
 
         UUID fileId = UUID.randomUUID();
         FileMeta fileMeta = new FileMeta(fileId, "profile.png", "image/png", 1024L);
@@ -55,6 +58,8 @@ public class FileMetaServiceTest {
 
         assertThat(found).contains(fileMeta);
         verify(fileMetaRepository).findById(fileId);
+
+
 
     }
 

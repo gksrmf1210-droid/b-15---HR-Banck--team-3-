@@ -28,4 +28,10 @@ public class FileMetaService {
         return fileMetaRepository.findById(fileId);
     }
 
+    public void deleteById(UUID fileId) {
+        fileMetaRepository.deleteById(fileId);
+    }
+    
+
+
 }
