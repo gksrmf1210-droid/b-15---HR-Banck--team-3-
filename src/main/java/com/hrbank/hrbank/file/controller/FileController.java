@@ -17,7 +17,7 @@
 
     import java.io.IOException;
     import java.io.InputStream;
-    import java.util.UUID;
+
 
     @Tag(name = "파일 관리", description = "파일 업로드, 다운로드 및 삭제 API")
     @RestController
@@ -59,8 +59,8 @@
 
 
         public ResponseEntity<InputStreamResource> download(
-                @Parameter(description = "다운로드할 파일의 UUID", required = true)
-                @PathVariable UUID fileId
+                @Parameter(description = "다운로드할 파일의 ID (Long)", required = true)
+                @PathVariable Long  fileId
                 ) throws IOException  {
 
 
@@ -94,8 +94,8 @@
         })
 
         public ResponseEntity<Void> delete(
-                @Parameter(description = "삭제할 파일의 UUID", required = true)
-                @PathVariable UUID fileId
+                @Parameter(description = "삭제할 파일의 ID (Long)", required = true)
+                @PathVariable Long fileId
                 ) throws IOException {
 
             fileService.delete(fileId);

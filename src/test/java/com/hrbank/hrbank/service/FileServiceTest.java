@@ -23,7 +23,7 @@ public class FileServiceTest {
     @TempDir
     Path tempDir;
 
-    private  FileStorage fileStorage;
+    private FileStorage fileStorage;
     private FileMetaService fileMetaService;
     private FileService fileService;
 
@@ -36,51 +36,48 @@ public class FileServiceTest {
                 fileStorage,
                 fileMetaService
         );
-
     }
 
     @Test
     void uploadStoresFileAndSavesMetadata() throws IOException {
-
-        UUID fileId = UUID.randomUUID();
+        UUID storageKey = UUID.randomUUID();
         String fileName = "test.txt";
         String contentType = "text/plain";
         byte[] content =
                 "HR Bank Test".getBytes(StandardCharsets.UTF_8);
 
-        when(fileStorage.store(any(), eq(fileName))).thenReturn(fileId);
+        when(fileStorage.store(any(), eq(fileName)))
+                .thenReturn(storageKey);
 
-       when(fileMetaService.save(any(FileMeta.class)))
-               .thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileMetaService.save(any(FileMeta.class)))
+                .thenAnswer(invocation -> {
+                    FileMeta saved = invocation.getArgument(0);
+                    return saved;
+                });
 
-       FileMeta result = fileService.upload(
-               new ByteArrayInputStream(content),
-               fileName,
-               contentType,
-               content.length
-       );
+        FileMeta result = fileService.upload(
+                new ByteArrayInputStream(content),
+                fileName,
+                contentType,
+                content.length
+        );
 
-       assertEquals(fileId, result.getId());
-       assertEquals(fileName, result.getFileName());
-       assertEquals(contentType, result.getContentType());
-       assertEquals(content.length, result.getSize());
-
-
-
+        assertEquals(storageKey, result.getStorageKey());
+        assertEquals(fileName, result.getFileName());
+        assertEquals(contentType, result.getContentType());
+        assertEquals(content.length, result.getSize());
     }
 
     @Test
     void uploadDeletesStoredFileWhenMetadataSaveFails() throws IOException {
-        // given
-        UUID fileId = UUID.randomUUID();
+        UUID storageKey = UUID.randomUUID();
 
         when(fileStorage.store(any(), eq("test.txt")))
-                .thenReturn(fileId);
+                .thenReturn(storageKey);
 
         when(fileMetaService.save(any(FileMeta.class)))
                 .thenThrow(new RuntimeException("DB 저장 실패"));
 
-        // when & then
         assertThrows(
                 RuntimeException.class,
                 () -> fileService.upload(
@@ -93,22 +90,16 @@ public class FileServiceTest {
                 )
         );
 
-        verify(fileStorage).delete(fileId);
-
-
-
-
-
-
+        verify(fileStorage).delete(storageKey);
     }
 
     @Test
     void downloadReturnsFileContent() throws IOException {
-        // given
-        UUID fileId = UUID.randomUUID();
+        Long fileId = 1L;
+        UUID storageKey = UUID.randomUUID();
 
         FileMeta fileMeta = new FileMeta(
-                fileId,
+                storageKey,
                 "test.txt",
                 "text/plain",
                 4
@@ -121,75 +112,69 @@ public class FileServiceTest {
         when(fileMetaService.findById(fileId))
                 .thenReturn(java.util.Optional.of(fileMeta));
 
-        when(fileStorage.load(fileId))
+        when(fileStorage.load(storageKey))
                 .thenReturn(expectedStream);
 
-        // when
         InputStream result = fileService.download(fileId);
 
-        // then
         assertSame(expectedStream, result);
 
         verify(fileMetaService).findById(fileId);
-        verify(fileStorage).load(fileId);
+        verify(fileStorage).load(storageKey);
     }
 
     @Test
     void downloadThrowsExceptionWhenMetadataDoesNotExist() throws IOException {
-        // given
-        UUID fileId = UUID.randomUUID();
+        Long fileId = 1L;
 
         when(fileMetaService.findById(fileId))
                 .thenReturn(java.util.Optional.empty());
 
-        // when & then
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fileService.download(fileId)
         );
 
         verify(fileMetaService).findById(fileId);
-        verify(fileStorage, never()).load(fileId);
+        verify(fileStorage, never()).load(any(UUID.class));
     }
 
     @Test
     void deleteRemovesFileAndMetadata() throws IOException {
-
-        UUID fileId = UUID.randomUUID();
+        Long fileId = 1L;
+        UUID storageKey = UUID.randomUUID();
 
         FileMeta fileMeta = new FileMeta(
-                fileId,
+                storageKey,
                 "test.txt",
                 "text/plain",
                 4
         );
 
-        when(fileMetaService.findById(fileId)).thenReturn(java.util.Optional.of(fileMeta));
+        when(fileMetaService.findById(fileId))
+                .thenReturn(java.util.Optional.of(fileMeta));
 
         fileService.delete(fileId);
 
-        verify(fileStorage).delete(fileId);
+        verify(fileStorage).delete(storageKey);
         verify(fileMetaService).deleteById(fileId);
-
-
     }
 
     @Test
     void deleteThrowsExceptionWhenMetadataDoesNotExist() throws IOException {
+        Long fileId = 1L;
 
-        UUID fileId = UUID.randomUUID();
-
-        when(fileMetaService.findById(fileId)).thenReturn(java.util.Optional.empty());
+        when(fileMetaService.findById(fileId))
+                .thenReturn(java.util.Optional.empty());
 
         assertThrows(
-                IllegalArgumentException.class, () -> fileService.delete(fileId)
+                IllegalArgumentException.class,
+                () -> fileService.delete(fileId)
         );
 
-        verify(fileStorage, never()).delete(fileId);
+        verify(fileStorage, never()).delete(any(UUID.class));
         verify(fileMetaService, never()).deleteById(fileId);
     }
-
-
 
 }
 

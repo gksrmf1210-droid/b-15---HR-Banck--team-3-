@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
+
+
 @Service
 public class FileService {
 
@@ -25,51 +27,54 @@ public class FileService {
     public FileMeta upload(
             InputStream inputStream,
             String fileName,
-            String cotentType,
+            String contentType,
             long size
 
     ) throws IOException {
-        UUID fileId = fileStorage.store(inputStream, fileName);
+        UUID storageKey = fileStorage.store(inputStream, fileName);
 
         try {
             FileMeta fileMeta = new FileMeta(
-                    fileId,
+                    storageKey,
                     fileName,
-                    cotentType,
+                    contentType,
                     size
 
             );
+
+
             return fileMetaService.save(fileMeta);
         } catch (RuntimeException e) {
             try {
-                fileStorage.delete(fileId);
+                fileStorage.delete(storageKey);
             } catch (IOException cleanupException) {
                 e.addSuppressed(cleanupException);
             }
             throw  e;
         }
     }
-    public InputStream download (UUID fileId) throws IOException {
-       fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException(
-               "파일 정보를 찾을 수 없습니다." + fileId
-               )
-       );
-       return fileStorage.load(fileId);
+    public InputStream download (Long fileId) throws IOException {
+
+       FileMeta fileMeta= findMetadata(fileId);
+       return fileStorage.load(fileMeta.getStorageKey());
+
+
     }
 
 
-    public void delete(UUID fileId) throws IOException {
+    public void delete(Long fileId) throws IOException {
 
-       fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException("파일 정보를 찾을 수 없습니다" + fileId)
-       );
+       FileMeta fileMeta = findMetadata(fileId);
 
-       fileStorage.delete(fileId);
-
+       fileStorage.delete(fileMeta.getStorageKey());
        fileMetaService.deleteById(fileId);
+
+
+
 }
 
-public FileMeta findMetadata(UUID fileId) {
-       return fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException("파일 정볼르 찾을 수 없습니다." + fileId));
+public FileMeta findMetadata(Long fileId) {
+       return fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException("파일 정보를 찾을 수 없습니다." + fileId));
 
 }
 
