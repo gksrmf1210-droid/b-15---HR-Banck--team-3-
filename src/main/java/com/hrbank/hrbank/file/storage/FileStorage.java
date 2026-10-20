@@ -1,4 +1,4 @@
-package com.hrbank.hrbank.storage;
+package com.hrbank.hrbank.file.storage;
 
 import java.io.IOException;
 import java.io.InputStream;

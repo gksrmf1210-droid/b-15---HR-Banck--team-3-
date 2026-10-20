@@ -1,10 +1,8 @@
-package com.hrbank.hrbank.repository;
+package com.hrbank.hrbank.file.repository;
 
 
-import com.hrbank.hrbank.entity.FileMeta;
+import com.hrbank.hrbank.file.entity.FileMeta;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.UUID;
 
 public interface FileMetaRepository extends JpaRepository<FileMeta, Long> {
 

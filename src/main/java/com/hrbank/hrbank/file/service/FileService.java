@@ -1,7 +1,7 @@
-package com.hrbank.hrbank.service;
+package com.hrbank.hrbank.file.service;
 
-import com.hrbank.hrbank.entity.FileMeta;
-import com.hrbank.hrbank.storage.FileStorage;
+import com.hrbank.hrbank.file.entity.FileMeta;
+import com.hrbank.hrbank.file.storage.FileStorage;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;

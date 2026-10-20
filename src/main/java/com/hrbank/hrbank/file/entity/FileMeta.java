@@ -1,5 +1,6 @@
-package com.hrbank.hrbank.entity;
+package com.hrbank.hrbank.file.entity;
 
+import com.hrbank.hrbank.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

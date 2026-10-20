@@ -1,8 +1,8 @@
-package com.hrbank.hrbank.service;
+package com.hrbank.hrbank.file.service;
 
 
-import com.hrbank.hrbank.entity.FileMeta;
-import com.hrbank.hrbank.repository.FileMetaRepository;
+import com.hrbank.hrbank.file.entity.FileMeta;
+import com.hrbank.hrbank.file.repository.FileMetaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;

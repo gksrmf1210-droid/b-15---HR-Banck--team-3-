@@ -1,8 +1,8 @@
     package com.hrbank.hrbank.file.controller;
 
 
-    import com.hrbank.hrbank.entity.FileMeta;
-    import com.hrbank.hrbank.service.FileService;
+    import com.hrbank.hrbank.file.entity.FileMeta;
+    import com.hrbank.hrbank.file.service.FileService;
     import lombok.RequiredArgsConstructor;
     import org.springframework.core.io.InputStreamResource;
     import org.springframework.http.MediaType;
