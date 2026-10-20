@@ -1,5 +1,6 @@
-package com.hrbank.hrbank.databackup;
+package com.hrbank.hrbank.databackup.entity;
 
+import com.hrbank.hrbank.databackup.BackupStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,8 +37,8 @@ public class BackupHistoryEntity {
   private LocalDateTime endedAt;
 
   // 파일 ID만 UUID로 변경
-  @Column(columnDefinition = "BINARY(16)") // 또는 String 변환을 원하시면 varchar(36)
-  private UUID backupFileId;
+  @Column(name = "backup_file_id")// 또는 String 변환을 원하시면 varchar(36)
+  private Long backupFileId;
 
   public static BackupHistoryEntity start(String worker) {
     BackupHistoryEntity history = new BackupHistoryEntity();
@@ -58,15 +58,15 @@ public class BackupHistoryEntity {
     return history;
   }
 
-  // 파라미터 타입을 UUID로 수정
-  public void complete(UUID backupFileId) {
+
+  public void complete(Long backupFileId) {
     this.status = BackupStatus.COMPLETED;
     this.endedAt = LocalDateTime.now();
     this.backupFileId = backupFileId;
   }
 
-  // 파라미터 타입을 UUID로 수정
-  public void fail(UUID errorLogFileId) {
+
+  public void fail(Long errorLogFileId) {
     this.status = BackupStatus.FAILED;
     this.endedAt = LocalDateTime.now();
     this.backupFileId = errorLogFileId;
