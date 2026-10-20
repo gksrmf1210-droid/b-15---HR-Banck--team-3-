@@ -135,5 +135,20 @@ public class ChangeLogService {
         return properties;
     }
 
+    @Transactional
+    public Long changeLogDelete(Long employeeId, String memo, String ipAddress) {
+        Employee emp = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new EmployeeNotFoundException(employeeId));
 
+        ChangeLog log = new ChangeLog(ChangeLog.ChangeType.DELETED, emp.getEmployeeNumber(), memo, ipAddress);
+
+        // 삭제는 수정 후 값이 없으니까 값이 있는 속성들만 after = null로 저장
+        toSnapshot(emp).forEach((key, value) -> {
+            if (value != null) {
+                log.addDetail(key, value, null);
+            }
+        });
+
+        return changeLogRepository.save(log).getId();
+    }
 }
