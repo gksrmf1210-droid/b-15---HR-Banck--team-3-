@@ -26,7 +26,7 @@ public class BackupHistoryWriter {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void complete(Long historyId, UUID backupFileId) {
+  public void complete(Long historyId, Long backupFileId) {
     historyRepository.findById(historyId).ifPresent(history -> {
       history.complete(backupFileId);
     });

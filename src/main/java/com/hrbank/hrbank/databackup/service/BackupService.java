@@ -47,12 +47,14 @@ public class BackupService {
     }
 
     // STEP 1. 백업 필요 여부 판단
+    // 백업 진행 중 변경된 데이터 유실 및 초 단위 오차 방지를 위해 startedAt 기준으로 비교
     LocalDateTime lastCompletedAt = historyRepository
         .findTopByStatusOrderByEndedAtDesc(BackupStatus.COMPLETED)
-        .map(BackupHistoryEntity::getEndedAt)
+        .map(BackupHistoryEntity::getStartedAt)
         .orElse(LocalDateTime.of(1970, 1, 1, 0, 0));
 
-    boolean hasChanged = employeeRepository.existsByUpdatedAtAfter(lastCompletedAt);
+    // 초/밀리초 단위 버림 현상 대비: 1초 여유 버퍼 적용 (또는 existsByUpdatedAtGreaterThanEqual 사용)
+    boolean hasChanged = employeeRepository.existsByUpdatedAtAfter(lastCompletedAt.minusSeconds(1));
     if (!hasChanged) {
       log.info("변경된 직원 데이터가 없어 백업을 건너뜁니다. (작업자: {})", worker);
       historyWriter.saveSkipped(worker);
@@ -64,7 +66,7 @@ public class BackupService {
     log.info("데이터 백업 프로세스 시작: historyId={}, worker={}", historyId, worker);
 
     Path tempCsvPath = null;
-    UUID uploadedBackupFileId = null;
+    Long uploadedBackupFileId = null;
 
     try {
       // STEP 3. 실제 백업 작업 수행 (OOM 방지 스트리밍 CSV 작성)
@@ -72,8 +74,12 @@ public class BackupService {
       writeEmployeesToCsv(tempCsvPath);
 
       String fileName = "backup_employees_" + System.currentTimeMillis() + ".csv";
+      long fileSize = Files.size(tempCsvPath);
+
       try (InputStream is = Files.newInputStream(tempCsvPath)) {
-        uploadedBackupFileId = fileStorage.store(is, fileName);
+        // fileStorage.store -> fileService.upload 로 교체하여 FileMeta 엔티티 저장 및 Long ID 획득
+        FileMeta backupFileMeta = fileService.upload(is, fileName, "text/csv", fileSize);
+        uploadedBackupFileId = backupFileMeta.getId();
       }
 
       // STEP 4-1. 백업 성공 이력 갱신
@@ -86,7 +92,8 @@ public class BackupService {
       // STEP 4-2. 실패 시 임시 파일 삭제 및 에러 로그 기록
       if (uploadedBackupFileId != null) {
         try {
-          fileStorage.delete(uploadedBackupFileId);
+          // FileService.delete(Long fileId) 호출 -> 물리 스토리지(UUID)와 DB 메타데이터 동시 정리
+          fileService.delete(uploadedBackupFileId);
         } catch (Exception ignored) {}
       }
 
