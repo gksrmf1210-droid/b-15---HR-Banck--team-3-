@@ -44,7 +44,7 @@ public class Employee extends BaseEntity {
     public Employee(String name, String email, String employeeNumber, Department department, String position,LocalDate hireDate){
         this.name =name;
         this.email = email;
-         this.employeeNumber = employeeNumber;
+        this.employeeNumber = employeeNumber;
         this.department = department;
         this.position = position;
         this.status = EmployeeStatus.ACTIVE;
