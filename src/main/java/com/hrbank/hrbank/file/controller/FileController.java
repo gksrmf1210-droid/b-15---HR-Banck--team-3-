@@ -49,7 +49,7 @@
             return ResponseEntity.ok(fileMeta);
         }
 
-        @GetMapping("/{fileId}")
+        @GetMapping("/{fileId}/download")
         @Operation(summary = "파일 다운로드", description = "파일 ID를 이용해 파일을 다운로드 한다.")
         @ApiResponses({
                 @ApiResponse(responseCode = "200", description = "파일 다운로드 성공"),
