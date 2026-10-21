@@ -2,7 +2,7 @@ package com.hrbank.hrbank.databackup;
 
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.repository.EmployeeRepository;
-import com.hrbank.hrbank.storage.FileStorage;
+import com.hrbank.hrbank.file.storage.FileStorage;
 import jakarta.persistence.EntityManager;
 import java.io.BufferedWriter;
 import java.io.InputStream;
