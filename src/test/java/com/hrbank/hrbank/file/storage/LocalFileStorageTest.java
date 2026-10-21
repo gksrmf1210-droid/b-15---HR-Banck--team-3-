@@ -1,6 +1,5 @@
-package com.hrbank.hrbank.storege;
+package com.hrbank.hrbank.file.storage;
 
-import com.hrbank.hrbank.storage.LocalFileStorage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
