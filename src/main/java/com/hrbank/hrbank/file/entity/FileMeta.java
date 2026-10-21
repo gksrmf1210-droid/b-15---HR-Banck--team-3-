@@ -1,12 +1,13 @@
-package com.hrbank.hrbank.entity;
+package com.hrbank.hrbank.file.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.hrbank.hrbank.entity.BaseEntity;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+
 
 import java.util.UUID;
 
@@ -18,24 +19,31 @@ import java.util.UUID;
 public class FileMeta extends BaseEntity {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(length = 255)
     private String fileName;
 
-    @Column(length = 255)
-    String contentType;
 
     @Column(length = 255)
+    private String contentType;
+
+    @Column(nullable = false)
     private long  size;
 
+    @Column(nullable = false, unique = true)
+    private UUID storageKey;
+
     public FileMeta(
-            UUID id,
+            UUID storageKey,
             String fileName,
             String contentType,
-            long size) {
+            long size)
+    {
 
-        this.id = id;
+
+        this.storageKey = storageKey;
         this.fileName = fileName;
         this.contentType = contentType;
         this.size  = size;

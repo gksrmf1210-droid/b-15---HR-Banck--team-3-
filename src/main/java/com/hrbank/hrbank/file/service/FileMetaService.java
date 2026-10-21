@@ -1,12 +1,12 @@
-package com.hrbank.hrbank.service;
+package com.hrbank.hrbank.file.service;
 
 
-import com.hrbank.hrbank.entity.FileMeta;
-import com.hrbank.hrbank.repository.FileMetaRepository;
+import com.hrbank.hrbank.file.entity.FileMeta;
+import com.hrbank.hrbank.file.repository.FileMetaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.UUID;
+
 
 @Service
 public class FileMetaService {
@@ -15,23 +15,25 @@ public class FileMetaService {
 
     public FileMetaService(FileMetaRepository fileMetaRepository) {
         this.fileMetaRepository = fileMetaRepository;
-
-
     }
 
     public FileMeta save(FileMeta fileMeta) {
-        return  fileMetaRepository.save(fileMeta);
-
+        return fileMetaRepository.save(fileMeta);
     }
 
-    public Optional<FileMeta> findById(UUID fileId) {
+    public Optional<FileMeta> findById(Long fileId) {
         return fileMetaRepository.findById(fileId);
     }
 
-    public void deleteById(UUID fileId) {
+    public void deleteById(Long fileId) {
         fileMetaRepository.deleteById(fileId);
     }
-    
-
 
 }
+
+
+
+
+
+
+

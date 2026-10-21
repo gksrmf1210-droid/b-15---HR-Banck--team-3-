@@ -1,9 +1,9 @@
-package com.hrbank.hrbank.service;
+package com.hrbank.hrbank.file.service;
 
 
 
-import com.hrbank.hrbank.entity.FileMeta;
-import com.hrbank.hrbank.repository.FileMetaRepository;
+import com.hrbank.hrbank.file.entity.FileMeta;
+import com.hrbank.hrbank.file.repository.FileMetaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,9 +30,10 @@ public class FileMetaServiceTest {
     @Test
     @DisplayName("파일 메타데이터를 저장한다")
     void FileMetaData() {
-
-        UUID fileId = UUID.randomUUID();
-        FileMeta fileMeta = new FileMeta(fileId, "profile.png", "image/png", 1024L);
+        UUID storageKey = UUID.randomUUID();
+        FileMeta fileMeta = new FileMeta(
+                storageKey, "profile.png", "image/png", 1024L
+        );
 
         when(fileMetaRepository.save(fileMeta)).thenReturn(fileMeta);
 
@@ -40,27 +41,25 @@ public class FileMetaServiceTest {
 
         assertThat(saved).isEqualTo(fileMeta);
         verify(fileMetaRepository).save(fileMeta);
-
-
-
     }
 
     @Test
-    @DisplayName("파일 ID로 메타데이터를 조회한다")
+    @DisplayName("Long 타입 파일 ID로 메타데이터를 조회한다")
     void fileId() {
+        Long fileId = 1L;
+        UUID storageKey = UUID.randomUUID();
 
-        UUID fileId = UUID.randomUUID();
-        FileMeta fileMeta = new FileMeta(fileId, "profile.png", "image/png", 1024L);
+        FileMeta fileMeta = new FileMeta(
+                storageKey, "profile.png", "image/png", 1024L
+        );
 
-        when(fileMetaRepository.findById(fileId)).thenReturn(Optional.of(fileMeta));
+        when(fileMetaRepository.findById(fileId))
+                .thenReturn(Optional.of(fileMeta));
 
         Optional<FileMeta> found = fileMetaService.findById(fileId);
 
         assertThat(found).contains(fileMeta);
         verify(fileMetaRepository).findById(fileId);
-
-
-
     }
 
 

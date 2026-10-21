@@ -1,4 +1,4 @@
-package com.hrbank.hrbank.storage;
+package com.hrbank.hrbank.file.storage;
 
 
 import org.springframework.beans.factory.annotation.Value;
