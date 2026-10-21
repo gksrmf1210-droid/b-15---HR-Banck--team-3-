@@ -6,9 +6,12 @@ import com.hrbank.hrbank.databackup.entity.BackupHistoryEntity;
 import com.hrbank.hrbank.databackup.repository.BackupHistoryRepository;
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.repository.EmployeeRepository;
+import com.hrbank.hrbank.file.entity.FileMeta;
+import com.hrbank.hrbank.file.service.FileService;
 import com.hrbank.hrbank.file.storage.FileStorage;
 import jakarta.persistence.EntityManager;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -17,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +36,8 @@ public class BackupService {
   private final EmployeeRepository employeeRepository;
   private final EntityManager entityManager;
   private final FileStorage fileStorage;
+
+  private final FileService fileService;
 
   public void executeBackup(String worker) {
     // STEP 0. 이미 진행 중인 백업이 있는지 확인
@@ -58,7 +64,7 @@ public class BackupService {
     log.info("데이터 백업 프로세스 시작: historyId={}, worker={}", historyId, worker);
 
     Path tempCsvPath = null;
-    Long uploadedBackupFileId = null;
+    UUID uploadedBackupFileId = null;
 
     try {
       // STEP 3. 실제 백업 작업 수행 (OOM 방지 스트리밍 CSV 작성)
@@ -154,11 +160,15 @@ public class BackupService {
       Files.writeString(tempLogPath, sw.toString(), StandardCharsets.UTF_8);
 
       String errorLogName = "backup_error_" + System.currentTimeMillis() + ".log";
+      long fileSize = Files.size(tempLogPath);
+
       try (InputStream is = Files.newInputStream(tempLogPath)) {
-        return fileStorage.store(is, errorLogName);
+        // FileService의 upload 호출 후 Long 타입 PK 획득
+        FileMeta errorFileMeta = fileService.upload(is, errorLogName, "text/plain", fileSize);
+        return errorFileMeta.getId();
       }
     } catch (Exception ex) {
-      log.error("에러 로그 파일 생성/저장 실패", ex);
+      log.error("에러 로그 파일 생성 및 저장 중 오류 발생", ex);
       return null;
     } finally {
       if (tempLogPath != null) {
@@ -168,4 +178,4 @@ public class BackupService {
       }
     }
   }
-}
+    }

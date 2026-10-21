@@ -2,6 +2,7 @@ package com.hrbank.hrbank.databackup;
 
 import com.hrbank.hrbank.databackup.entity.BackupHistoryEntity;
 import com.hrbank.hrbank.databackup.repository.BackupHistoryRepository;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,7 +26,7 @@ public class BackupHistoryWriter {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void complete(Long historyId, Long backupFileId) {
+  public void complete(Long historyId, UUID backupFileId) {
     historyRepository.findById(historyId).ifPresent(history -> {
       history.complete(backupFileId);
     });
