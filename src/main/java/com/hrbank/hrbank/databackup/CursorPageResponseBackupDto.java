@@ -1,5 +1,6 @@
 package com.hrbank.hrbank.databackup;
 
+import com.hrbank.hrbank.databackup.dto.BackupHistoryResponse;
 import java.util.List;
 
 public record CursorPageResponseBackupDto(

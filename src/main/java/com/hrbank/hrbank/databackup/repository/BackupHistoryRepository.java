@@ -1,5 +1,7 @@
-package com.hrbank.hrbank.databackup;
+package com.hrbank.hrbank.databackup.repository;
 
+import com.hrbank.hrbank.databackup.entity.BackupHistoryEntity;
+import com.hrbank.hrbank.databackup.BackupStatus;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
