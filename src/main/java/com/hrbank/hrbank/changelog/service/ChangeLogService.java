@@ -33,10 +33,10 @@ public class ChangeLogService {
     public ChangeLogPageResponse search(ChangeLogSearchRequest request) {
         List<ChangeLogResponse> results = changeLogRepository.search(request);
         boolean hasNext = results.size() > request.size();
-        List<ChangeLogResponse> content = List.copyOf(
+        List<ChangeLogResponse> data = List.copyOf(
                 hasNext ? results.subList(0, request.size()) : results);
-        Long nextAfter = hasNext ? content.get(content.size() - 1).id() : null;
-        return new ChangeLogPageResponse(content, nextAfter, hasNext, changeLogRepository.countMatching(request));
+        Long nextAfter = hasNext ? data.get(data.size() - 1).id() : null;
+        return new ChangeLogPageResponse(data, nextAfter, hasNext, changeLogRepository.countMatching(request));
     }
 
     @Transactional(readOnly = true)

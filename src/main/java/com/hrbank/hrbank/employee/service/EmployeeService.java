@@ -1,6 +1,8 @@
 package com.hrbank.hrbank.employee.service;
 
 
+import com.hrbank.hrbank.changelog.dto.request.ChangeLogRequest;
+import com.hrbank.hrbank.changelog.service.ChangeLogService;
 import com.hrbank.hrbank.department.dto.DepartmentDto;
 import com.hrbank.hrbank.department.entity.Department;
 import com.hrbank.hrbank.department.repository.DepartmentRepository;
@@ -34,6 +36,8 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final EmployeeNumberGenerator employeeNumberGenerator;
     private final FileService fileService;
+    private final ChangeLogService changeLogService;
+
     public EmployeeDto create(EmployeeCreateRequest request, MultipartFile profile) {
         if (employeeRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateEmailException(request.getEmail());
@@ -47,6 +51,10 @@ public class EmployeeService {
             employee.changeProfileImage(uploadProfile(profile));
         }
         employeeRepository.save(employee);
+
+        changeLogService.recordCreate(employee, "직원 등록", null);
+
+
         return EmployeeDto.from(employee);
     }
 
@@ -63,9 +71,14 @@ public class EmployeeService {
         if (employeeRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
             throw new DuplicateEmailException(request.getEmail());
         }
-        // TODO: 수정 이력 — 바꾸기 "전" 값이 필요하므로 이 위치에서 이전 값 기록 (이대원 연동)
+
+
+
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new DepartmentNotFoundException(request.getDepartmentId()));
+
+        changeLogService.recordUpdate(employee, request, department, null);
+
         employee.update(request.getName(), request.getEmail(), request.getStatus(),
                 department, request.getPosition(), request.getHireDate());
 
@@ -83,7 +96,7 @@ public class EmployeeService {
     public void delete(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new EmployeeNotFoundException(id));
-        // TODO: 수정 이력 "삭제" 기록 (이대원 연동) — 지우기 전에 기록해야 함
+        changeLogService.recordDelete(employee, null);
         employeeRepository.delete(employee);
         if (employee.getProfileImage() != null) {
             deleteFile(employee.getProfileImage().getId());
