@@ -6,6 +6,7 @@ import com.hrbank.hrbank.file.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import com.hrbank.hrbank.global.exception.BusinessException;
 
 
 import java.io.ByteArrayInputStream;
@@ -131,7 +132,7 @@ public class FileServiceTest {
                 .thenReturn(java.util.Optional.empty());
 
         assertThrows(
-                IllegalArgumentException.class,
+                BusinessException.class,
                 () -> fileService.download(fileId)
         );
 
@@ -168,7 +169,7 @@ public class FileServiceTest {
                 .thenReturn(java.util.Optional.empty());
 
         assertThrows(
-                IllegalArgumentException.class,
+                BusinessException.class,
                 () -> fileService.delete(fileId)
         );
 
