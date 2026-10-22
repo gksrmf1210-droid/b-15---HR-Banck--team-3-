@@ -37,9 +37,10 @@ public class ChangeLogService {
         List<ChangeLogResponse> content = List.copyOf(
                 hasNext ? results.subList(0, request.size()) : results);
         Long nextAfter = hasNext ? content.get(content.size() - 1).id() : null;
-        return new ChangeLogPageResponse(content, nextAfter, hasNext);
+        return new ChangeLogPageResponse(content, nextAfter, hasNext, changeLogRepository.countMatching(request));
     }
 
+    // 이력 상세 조회
     @Transactional(readOnly = true)
     public Map<String, Object> getId(Long id) {
         ChangeLog log = changeLogRepository.findById(id)
@@ -51,6 +52,7 @@ public class ChangeLogService {
         response.put("memo", log.getMemo());
         response.put("ipAddress", log.getIpAddress());
         response.put("createdAt", log.getCreatedAt());
+        response.put("at", log.getCreatedAt());
         response.put("type", log.getType());
         response.put("details", changeLogDiffRepository.findByChangeLogId(id).stream().map(diff -> {
             // 추가·삭제 이력은 변경 전 또는 변경 후 값이 null일 수 있다.
@@ -60,7 +62,38 @@ public class ChangeLogService {
             values.put("afterValue", diff.getAfterValue());
             return values;
         }).toList());
+        var diffs = changeLogDiffRepository.findByChangeLogId(id);
+        response.put("diffs", diffs.stream().map(diff -> {
+            Map<String, String> values = new LinkedHashMap<>();
+            values.put("propertyName", frontendPropertyName(diff.getPropertyName()));
+            values.put("before", diff.getBeforeValue());
+            values.put("after", diff.getAfterValue());
+            return values;
+        }).toList());
+        // 삭제된 직원도 저장된 이름 변경 내역으로 표시할 수 있다.
+        String employeeName = diffs.stream()
+                .filter(diff -> "name".equals(frontendPropertyName(diff.getPropertyName())))
+                .map(diff -> diff.getAfterValue() != null ? diff.getAfterValue() : diff.getBeforeValue())
+                .filter(Objects::nonNull).findFirst().orElse(null);
+        var employee = changeLogRepository.findEmployeeForDetail(log.getEmployeeNumber());
+        response.put("employeeName", employeeName != null ? employeeName
+                : employee.map(Employee::getName).orElse(null));
+        response.put("profileImageId", employee.filter(emp -> emp.getProfileImage() != null)
+                .map(emp -> emp.getProfileImage().getId()).orElse(null));
         return response;
+    }
+
+    private String frontendPropertyName(String propertyName) {
+        return switch (propertyName) {
+            case "이름" -> "name";
+            case "이메일" -> "email";
+            case "부서", "departmentName" -> "department";
+            case "직함" -> "position";
+            case "입사일" -> "hireDate";
+            case "사번" -> "employeeNumber";
+            case "상태" -> "status";
+            default -> propertyName;
+        };
     }
 
     @Transactional(readOnly = true)
