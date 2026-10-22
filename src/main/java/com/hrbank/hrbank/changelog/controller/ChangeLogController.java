@@ -5,10 +5,13 @@ import com.hrbank.hrbank.changelog.dto.response.ChangeLogPageResponse;
 import com.hrbank.hrbank.changelog.service.ChangeLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
+import java.beans.PropertyEditorSupport;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -18,6 +21,16 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 public class ChangeLogController {
     private final ChangeLogService changeLogService;
+
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        binder.registerCustomEditor(Sort.Direction.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                setValue(Sort.Direction.fromString(text));
+            }
+        });
+    }
 
     // 직원 정보 수정 이력 목록
     @GetMapping
