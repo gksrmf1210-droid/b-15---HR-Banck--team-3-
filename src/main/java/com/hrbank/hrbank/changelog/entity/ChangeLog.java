@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Getter
@@ -20,6 +21,7 @@ public class ChangeLog {
 
     @Enumerated(EnumType.STRING)
     private ChangeType type;
+
     public enum ChangeType { CREATED, UPDATED, DELETED }
 
     private String employeeNumber;
