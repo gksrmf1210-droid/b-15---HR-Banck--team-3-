@@ -1,5 +1,6 @@
 package com.hrbank.hrbank.changelog.dto.request;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import java.util.Map;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class ChangeLogRequest {
     private String name;            // 직원 이름
     private String email;
