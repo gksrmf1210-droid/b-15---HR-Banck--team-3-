@@ -29,6 +29,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
 
     boolean existsByUpdatedAtAfter(LocalDateTime lastCompletedAt);
+    long countByHireDateLessThanEqualAndStatusNot(LocalDate hireDate, EmployeeStatus status);
 
     @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.department WHERE e.id > :lastId ORDER BY e.id ASC")
     List<Employee> findEmployeesChunk(@Param("lastId") Long lastId, Pageable pageable);
@@ -197,7 +198,35 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             @Param("hireDateFrom") LocalDate hireDateFrom,
             @Param("hireDateTo") LocalDate hireDateTo,
             @Param("status") EmployeeStatus status);
-    }
+    @Query("""
+                SELECT COUNT(e) FROM Employee e
+                WHERE (:status IS NULL OR e.status = :status)
+                AND (:hireDateFrom IS NULL OR e.hireDate >= :hireDateFrom)
+                AND (:hireDateTo IS NULL OR e.hireDate <= :hireDateTo)
+                """)
+    long countForStats(
+            @Param("status") EmployeeStatus status,
+            @Param("hireDateFrom") LocalDate hireDateFrom,
+            @Param("hireDateTo") LocalDate hireDateTo);
+
+
+    @Query("""
+                SELECT e.department.name, COUNT(e) FROM Employee e
+                WHERE (:status IS NULL OR e.status = :status)
+                GROUP BY e.department.name
+                """)
+    List<Object[]> countForDepartmentStat(
+            @Param("status") EmployeeStatus status);
+
+    @Query("""
+                SELECT e.position, COUNT(e) FROM Employee e
+                WHERE (:status IS NULL OR e.status = :status)
+                GROUP BY e.position
+                """)
+    List<Object[]> countForPositionStat(
+            @Param("status") EmployeeStatus status);
+
+}
 
 
 

@@ -1,7 +1,5 @@
 package com.hrbank.hrbank.employee.controller;
-import com.hrbank.hrbank.employee.dto.EmployeeCreateRequest;
-import com.hrbank.hrbank.employee.dto.EmployeeDto;
-import com.hrbank.hrbank.employee.dto.EmployeeUpdateRequest;
+import com.hrbank.hrbank.employee.dto.*;
 import com.hrbank.hrbank.employee.entity.EmployeeStatus;
 import com.hrbank.hrbank.employee.service.EmployeeService;
 import com.hrbank.hrbank.global.dto.CursorPageResponse;
@@ -14,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -64,4 +63,31 @@ public class EmployeeController {
                 nameOrEmail, employeeNumber, departmentName, position, hireDateFrom, hireDateTo, status,idAfter,
                 cursor, size, sortField ,  sortDirection));
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> count(
+            // status, fromDate, toDate 3개
+            // 날짜 2개엔 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false)EmployeeStatus status,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false)LocalDate fromDate,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false)LocalDate toDate
+            ) {
+        return ResponseEntity.ok(employeeService.count(status,fromDate,toDate));
+    }
+    @GetMapping("/stats/distribution")
+    public ResponseEntity<List<EmployeeDistributionDto>> distribution(
+            @RequestParam(defaultValue = "department") String groupBy,
+            @RequestParam(defaultValue = "ACTIVE") EmployeeStatus status
+            ) {
+        return ResponseEntity.ok(employeeService.distribution(groupBy,status));
+    }
+    @GetMapping("/stats/trend")
+    public ResponseEntity<List<EmployeeTrendDto>> trend(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate from,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate to,
+            @RequestParam(defaultValue = "month") String unit) {
+        return ResponseEntity.ok(employeeService.trend(from, to, unit));
+    }
+
 }

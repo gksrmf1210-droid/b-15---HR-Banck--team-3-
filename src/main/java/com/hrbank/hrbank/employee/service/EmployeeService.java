@@ -4,8 +4,7 @@ package com.hrbank.hrbank.employee.service;
 import com.hrbank.hrbank.department.dto.DepartmentDto;
 import com.hrbank.hrbank.department.entity.Department;
 import com.hrbank.hrbank.department.repository.DepartmentRepository;
-import com.hrbank.hrbank.employee.dto.EmployeeCreateRequest;
-import com.hrbank.hrbank.employee.dto.EmployeeDto;
+import com.hrbank.hrbank.employee.dto.*;
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.entity.EmployeeStatus;
 import com.hrbank.hrbank.employee.repository.EmployeeRepository;
@@ -22,9 +21,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.hrbank.hrbank.employee.dto.EmployeeUpdateRequest;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -156,13 +155,70 @@ public class EmployeeService {
 
         return new CursorPageResponse<>(content, nextCursor, nextIdAfter, content.size(), totalElements, hasNext);
     }
+
+    @Transactional(readOnly = true)
+    public long count(EmployeeStatus status, LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate ==null){
+            toDate = LocalDate.now();
+        }
+        long countResult = employeeRepository.countForStats(status, fromDate, toDate);
+        return countResult;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeDistributionDto> distribution(String groupBy, EmployeeStatus status) {
+        List<Object[]> rows;
+        long total = employeeRepository.countForStats(status, null, null);
+        if ("position".equals(groupBy)){
+            rows = employeeRepository.countForPositionStat(status);
+        }else {
+            rows = employeeRepository.countForDepartmentStat(status);
+        }
+        return rows.stream()
+                .map(row -> EmployeeDistributionDto.from(row, total))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeTrendDto> trend(LocalDate from, LocalDate to, String unit) {
+        if (to == null) {
+            to = LocalDate.now();
+        }
+        if (from == null) {
+            from = plus(to, unit, -12);
+        }
+        List<EmployeeTrendDto> result = new ArrayList<>();
+        Long prevCount = null;
+        LocalDate date = from;
+
+        while (!date.isAfter(to)) {
+            long count = employeeRepository.countByHireDateLessThanEqualAndStatusNot(date, EmployeeStatus.RESIGNED);
+            long change = (prevCount == null) ? 0 : count - prevCount;
+            double changeRate = (prevCount == null || prevCount == 0) ? 0 : change * 100.0 / prevCount;
+            result.add(new EmployeeTrendDto(date, count, change, changeRate));
+            prevCount = count;
+            date = plus(date, unit, 1);
+        }
+        return result;
+    }
+
+    private LocalDate plus(LocalDate date, String unit, long amount) {
+        if ("day".equals(unit)) {
+            return date.plusDays(amount);
+        } else if ("week".equals(unit)) {
+            return date.plusWeeks(amount);
+        } else if ("quarter".equals(unit)) {
+            return date.plusMonths(3 * amount);
+        } else if ("year".equals(unit)) {
+            return date.plusYears(amount);
+        } else {
+            return date.plusMonths(amount);
+        }
+    }
+
     private FileMeta uploadProfile(MultipartFile profile) {
         try {
-            return fileService.upload(
-                    profile.getInputStream(),
-                    profile.getOriginalFilename(),
-                    profile.getContentType(),
-                    profile.getSize()
+            return fileService.upload(profile.getInputStream(), profile.getOriginalFilename(), profile.getContentType(), profile.getSize()
             );
         } catch (IOException e) {
             throw new IllegalStateException("프로필 이미지 업로드에 실패했습니다.", e);
