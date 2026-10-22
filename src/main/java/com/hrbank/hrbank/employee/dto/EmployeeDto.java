@@ -22,9 +22,10 @@ public class EmployeeDto {
     private Long profileImageId;
 
     public static EmployeeDto from(Employee employee) {
+        Long profileImageId = (employee.getProfileImage() == null) ? null : employee.getProfileImage().getId();
         return new EmployeeDto(employee.getId(), employee.getName(),
                 employee.getEmail(), employee.getEmployeeNumber(),
                 employee.getDepartment().getId(), employee.getDepartment().getName(),
-                employee.getPosition(), employee.getHireDate(), employee.getStatus(),null);
+                employee.getPosition(), employee.getHireDate(), employee.getStatus(), profileImageId);
     }
 }

@@ -9,6 +9,9 @@ import com.hrbank.hrbank.employee.dto.EmployeeDto;
 import com.hrbank.hrbank.employee.entity.Employee;
 import com.hrbank.hrbank.employee.entity.EmployeeStatus;
 import com.hrbank.hrbank.employee.repository.EmployeeRepository;
+import com.hrbank.hrbank.file.service.FileService;
+import com.hrbank.hrbank.file.entity.FileMeta;
+import java.io.IOException;
 import com.hrbank.hrbank.global.dto.CursorPageResponse;
 import com.hrbank.hrbank.global.exception.DepartmentNotFoundException;
 import com.hrbank.hrbank.global.exception.DuplicateEmailException;
@@ -31,16 +34,19 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final EmployeeNumberGenerator employeeNumberGenerator;
-
+    private final FileService fileService;
     public EmployeeDto create(EmployeeCreateRequest request, MultipartFile profile) {
         if (employeeRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateEmailException(request.getEmail());
         }
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new DepartmentNotFoundException(request.getDepartmentId()));
-
         String employeeNumber = employeeNumberGenerator.generate(request.getHireDate());
-        Employee employee = new Employee(request.getName(), request.getEmail(), employeeNumber, department, request.getPosition(), request.getHireDate());
+        Employee employee = new Employee(request.getName(), request.getEmail(), employeeNumber, department,
+                request.getPosition(), request.getHireDate());
+        if (profile != null && !profile.isEmpty()) {
+            employee.changeProfileImage(uploadProfile(profile));
+        }
         employeeRepository.save(employee);
         return EmployeeDto.from(employee);
     }
@@ -63,7 +69,15 @@ public class EmployeeService {
                 .orElseThrow(() -> new DepartmentNotFoundException(request.getDepartmentId()));
         employee.update(request.getName(), request.getEmail(), request.getStatus(),
                 department, request.getPosition(), request.getHireDate());
-        // TODO: 프로필 이미지 교체 (이준영 연동)
+
+        if (profile != null && !profile.isEmpty()) {
+            FileMeta oldImage = employee.getProfileImage();
+            employee.changeProfileImage(uploadProfile(profile));
+            if (oldImage != null) {
+                deleteFile(oldImage.getId());
+            }
+        }
+
         return EmployeeDto.from(employee);
     }
 
@@ -71,8 +85,10 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new EmployeeNotFoundException(id));
         // TODO: 수정 이력 "삭제" 기록 (이대원 연동) — 지우기 전에 기록해야 함
-        // TODO: 프로필 이미지 파일 삭제 (이준영 연동)
         employeeRepository.delete(employee);
+        if (employee.getProfileImage() != null) {
+            deleteFile(employee.getProfileImage().getId());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -139,6 +155,25 @@ public class EmployeeService {
 
 
         return new CursorPageResponse<>(content, nextCursor, nextIdAfter, content.size(), totalElements, hasNext);
+    }
+    private FileMeta uploadProfile(MultipartFile profile) {
+        try {
+            return fileService.upload(
+                    profile.getInputStream(),
+                    profile.getOriginalFilename(),
+                    profile.getContentType(),
+                    profile.getSize()
+            );
+        } catch (IOException e) {
+            throw new IllegalStateException("프로필 이미지 업로드에 실패했습니다.", e);
+        }
+    }
+    private void deleteFile(Long fileId) {
+        try {
+            fileService.delete(fileId);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
 
