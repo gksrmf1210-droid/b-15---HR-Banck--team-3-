@@ -2,13 +2,18 @@ package com.hrbank.hrbank.employee.controller;
 import com.hrbank.hrbank.employee.dto.EmployeeCreateRequest;
 import com.hrbank.hrbank.employee.dto.EmployeeDto;
 import com.hrbank.hrbank.employee.dto.EmployeeUpdateRequest;
+import com.hrbank.hrbank.employee.entity.EmployeeStatus;
 import com.hrbank.hrbank.employee.service.EmployeeService;
+import com.hrbank.hrbank.global.dto.CursorPageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,5 +43,25 @@ public class EmployeeController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping
+    public ResponseEntity<CursorPageResponse<EmployeeDto>> findAll(
+            @RequestParam(required = false) String nameOrEmail,
+            @RequestParam(required = false) String employeeNumber,
+            @RequestParam(required = false) String departmentName,
+            @RequestParam(required = false) String position,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate hireDateFrom,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate hireDateTo,
+            @RequestParam(required = false) EmployeeStatus status,
+            @RequestParam(required = false) Long idAfter,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sortField,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+        return ResponseEntity.ok(employeeService.findAll(
+                nameOrEmail, employeeNumber, departmentName, position, hireDateFrom, hireDateTo, status,idAfter,
+                cursor, size, sortField ,  sortDirection));
     }
 }
