@@ -2,6 +2,8 @@ package com.hrbank.hrbank.file.service;
 
 import com.hrbank.hrbank.file.entity.FileMeta;
 import com.hrbank.hrbank.file.storage.FileStorage;
+import com.hrbank.hrbank.global.exception.BusinessException;
+import com.hrbank.hrbank.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -74,7 +76,11 @@ public class FileService {
 }
 
 public FileMeta findMetadata(Long fileId) {
-       return fileMetaService.findById(fileId).orElseThrow(() -> new IllegalArgumentException("파일 정보를 찾을 수 없습니다." + fileId));
+    return fileMetaService.findById(fileId)
+            .orElseThrow(() -> new BusinessException(
+                    ErrorCode.NOT_FOUND,
+                    "파일 정보를 찾을 수 없습니다. ID: " + fileId
+            ));
 
 }
 
