@@ -1,34 +1,33 @@
 package com.hrbank.hrbank.changelog.service;
 
-import com.hrbank.hrbank.changelog.dto.request.ChangeLogRequest;
 import com.hrbank.hrbank.changelog.dto.request.ChangeLogSearchRequest;
+import com.hrbank.hrbank.changelog.dto.response.ChangeLogDiffResponse;
 import com.hrbank.hrbank.changelog.dto.response.ChangeLogPageResponse;
 import com.hrbank.hrbank.changelog.dto.response.ChangeLogResponse;
 import com.hrbank.hrbank.changelog.entity.ChangeLog;
 import com.hrbank.hrbank.changelog.repository.ChangeLogDiffRepository;
 import com.hrbank.hrbank.changelog.repository.ChangeLogRepository;
+import com.hrbank.hrbank.department.entity.Department;
+import com.hrbank.hrbank.employee.dto.EmployeeUpdateRequest;
 import com.hrbank.hrbank.employee.entity.Employee;
-import com.hrbank.hrbank.employee.repository.EmployeeRepository;
-import com.hrbank.hrbank.global.exception.EmployeeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class ChangeLogService {
     private final ChangeLogRepository changeLogRepository;
-    private final EmployeeRepository employeeRepository;
     private final ChangeLogDiffRepository changeLogDiffRepository;
+
+    // ===== 조회 =====
 
     @Transactional(readOnly = true)
     public ChangeLogPageResponse search(ChangeLogSearchRequest request) {
@@ -37,29 +36,34 @@ public class ChangeLogService {
         List<ChangeLogResponse> content = List.copyOf(
                 hasNext ? results.subList(0, request.size()) : results);
         Long nextAfter = hasNext ? content.get(content.size() - 1).id() : null;
-        return new ChangeLogPageResponse(content, nextAfter, hasNext);
+        return new ChangeLogPageResponse(content, nextAfter, hasNext, changeLogRepository.countMatching(request));
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> getId(Long id) {
         ChangeLog log = changeLogRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "이력을 찾을 수 없습니다."));
+        List<ChangeLogDiffResponse> diffs = changeLogDiffRepository.findDiffs(id);
+        var employee = changeLogRepository.findEmployeeForDetail(log.getEmployeeNumber());
+
+        String employeeName = diffs.stream()
+                .filter(d -> "name".equals(d.propertyName()))
+                .map(d -> d.after() != null ? d.after() : d.before())
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseGet(() -> employee.map(Employee::getName).orElse(null));
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", log.getId());
+        response.put("type", log.getType());
         response.put("employeeNumber", log.getEmployeeNumber());
+        response.put("employeeName", employeeName);
+        response.put("profileImageId", employee.map(Employee::getProfileImage)
+                .map(img -> img.getId()).orElse(null));
         response.put("memo", log.getMemo());
         response.put("ipAddress", log.getIpAddress());
-        response.put("createdAt", log.getCreatedAt());
-        response.put("type", log.getType());
-        response.put("details", changeLogDiffRepository.findByChangeLogId(id).stream().map(diff -> {
-            // 추가·삭제 이력은 변경 전 또는 변경 후 값이 null일 수 있다.
-            Map<String, String> values = new LinkedHashMap<>();
-            values.put("propertyName", diff.getPropertyName());
-            values.put("beforeValue", diff.getBeforeValue());
-            values.put("afterValue", diff.getAfterValue());
-            return values;
-        }).toList());
+        response.put("at", log.getCreatedAt());
+        response.put("diffs", diffs);
         return response;
     }
 
@@ -70,85 +74,63 @@ public class ChangeLogService {
         if (from.isAfter(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시작 시간은 종료 시간보다 늦을 수 없습니다.");
         }
-
-        // 시간대 없는 요청은 서버 기본 시간대로 해석한 뒤 저장된 Instant와 비교한다.
         ZoneId zone = ZoneId.systemDefault();
         return changeLogRepository.countByCreatedAtBetween(
                 from.atZone(zone).toInstant(), to.atZone(zone).toInstant());
     }
 
+    // ===== 이력 등록 (직원 서비스가 호출) =====
+
     @Transactional
-    public Long create(ChangeLogRequest request, String memo, String ipAddress) {
-        Employee employee = employeeRepository.findById(request.getEmployeeId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "직원을 찾을 수 없습니다. id=" + request.getEmployeeId()));
-
-        ChangeLog log = new ChangeLog(ChangeLog.ChangeType.CREATED, employee.getEmployeeNumber(), memo, ipAddress);
-
-        // 추가는 수정 전 값이 없으므로 값이 있는 속성만 before=null로 저장
-        request.toPropertyMap().forEach((key, value) -> {
-            if (value != null) {
-                log.addDetail(key, null, value);
-            }
-        });
-
-        return changeLogRepository.save(log).getId();
+    public void recordCreate(Employee e, String memo, String ip) {
+        save(ChangeLog.ChangeType.CREATED, e.getEmployeeNumber(), memo, ip, Map.of(), snapshot(e));
     }
 
-
+    @Transactional
+    public void recordUpdate(Employee e, EmployeeUpdateRequest r, Department newDepartment, String ip) {
+        save(ChangeLog.ChangeType.UPDATED, e.getEmployeeNumber(), r.getMemo(), ip, snapshot(e),
+                snapshot(r.getName(), r.getEmail(), newDepartment.getName(),
+                        r.getPosition(), r.getHireDate(), r.getStatus()));
+    }
 
     @Transactional
-    public void recordUpdate(long employeeNumber, ChangeLogRequest request,
-                             String memo, String ipAddress) {
+    public void recordDelete(Employee e, String ip) {
+        save(ChangeLog.ChangeType.DELETED, e.getEmployeeNumber(), null, ip, snapshot(e), Map.of());
+    }
 
-        Employee emp = employeeRepository.findById(employeeNumber)
-                .orElseThrow(() -> new EmployeeNotFoundException(employeeNumber));
-
-        Map<String, String> beforeMap = toSnapshot(emp);                  // 직원 변경 전 값
-        Map<String, String> afterMap = request.toPropertyMap();            // 요청 값
-
-        ChangeLog log = new ChangeLog(ChangeLog.ChangeType.UPDATED, emp.getEmployeeNumber(), memo, ipAddress);
-
-        for (String key : beforeMap.keySet()) {
-            String b = beforeMap.get(key);
-            String a = afterMap.get(key);
-            if (!Objects.equals(b, a)) {       // 달라진 속성만
+    private void save(ChangeLog.ChangeType type, String employeeNumber, String memo, String ip,
+                      Map<String, String> before, Map<String, String> after) {
+        ChangeLog log = new ChangeLog(type, employeeNumber, memo, ip);
+        Set<String> keys = new LinkedHashSet<>(before.keySet());
+        keys.addAll(after.keySet());
+        for (String key : keys) {
+            String b = before.get(key);
+            String a = after.get(key);
+            if (!Objects.equals(b, a)) {
                 log.addDetail(key, b, a);
             }
         }
-
-        if (log.getDetails().isEmpty()) {        // 달라진 게 없으면 저장 안 함
+        if (type == ChangeLog.ChangeType.UPDATED && log.getDetails().isEmpty()) {
             return;
         }
         changeLogRepository.save(log);
     }
 
-    private Map<String, String> toSnapshot(Employee employee) {
-        Map<String, String> properties = new LinkedHashMap<>();
-        properties.put("이름", employee.getName());
-        properties.put("이메일", employee.getEmail());
-        properties.put("부서", employee.getDepartment() == null
-                ? null : employee.getDepartment().getName());
-        properties.put("직함", employee.getPosition());
-        properties.put("입사일", employee.getHireDate() == null
-                ? null : employee.getHireDate().toString());
-        return properties;
+    private Map<String, String> snapshot(Employee e) {
+        return snapshot(e.getName(), e.getEmail(),
+                e.getDepartment() == null ? null : e.getDepartment().getName(),
+                e.getPosition(), e.getHireDate(), e.getStatus());
     }
 
-    @Transactional
-    public Long changeLogDelete(Long employeeId, String memo, String ipAddress) {
-        Employee emp = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new EmployeeNotFoundException(employeeId));
-
-        ChangeLog log = new ChangeLog(ChangeLog.ChangeType.DELETED, emp.getEmployeeNumber(), memo, ipAddress);
-
-        // 삭제는 수정 후 값이 없으니까 값이 있는 속성들만 after = null로 저장
-        toSnapshot(emp).forEach((key, value) -> {
-            if (value != null) {
-                log.addDetail(key, value, null);
-            }
-        });
-
-        return changeLogRepository.save(log).getId();
+    private Map<String, String> snapshot(String name, String email, String department,
+                                         String position, LocalDate hireDate, Object status) {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("name", name);
+        m.put("email", email);
+        m.put("department", department);
+        m.put("position", position);
+        m.put("hireDate", Objects.toString(hireDate, null));
+        m.put("status", Objects.toString(status, null));
+        return m;
     }
 }

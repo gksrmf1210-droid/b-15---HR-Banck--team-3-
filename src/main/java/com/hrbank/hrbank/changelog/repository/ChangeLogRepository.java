@@ -3,9 +3,7 @@ package com.hrbank.hrbank.changelog.repository;
 import com.hrbank.hrbank.changelog.dto.request.ChangeLogSearchRequest;
 import com.hrbank.hrbank.changelog.dto.response.ChangeLogResponse;
 import com.hrbank.hrbank.changelog.entity.ChangeLog;
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import com.hrbank.hrbank.employee.entity.Employee;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +14,7 @@ import java.time.Instant;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 
 public interface ChangeLogRepository extends JpaRepository<ChangeLog, Long> {
@@ -38,6 +37,20 @@ public interface ChangeLogRepository extends JpaRepository<ChangeLog, Long> {
             AND (:from IS NULL OR c.createdAt >= :from)
             AND (:to IS NULL OR c.createdAt <= :to)
             """;
+
+    @Query("SELECT COUNT(c) FROM ChangeLog c WHERE " + FILTER)
+    long countMatching(
+            @Param("employeeNumber") String employeeNumber, @Param("memo") String memo,
+            @Param("ipAddress") String ipAddress, @Param("type") ChangeLog.ChangeType type,
+            @Param("from") Instant from, @Param("to") Instant to);
+
+    default long countMatching(ChangeLogSearchRequest request) {
+        return countMatching(escape(request.employeeNumber()), escape(request.memo()),
+                escape(request.ipAddress()), request.type(), request.atFrom(), request.atTo());
+    }
+
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.profileImage WHERE e.employeeNumber = :employeeNumber")
+    Optional<Employee> findEmployeeForDetail(@Param("employeeNumber") String employeeNumber);
 
     // ==== 시간순 정렬 ====
     // 최신순 (내림차순)
@@ -130,17 +143,17 @@ public interface ChangeLogRepository extends JpaRepository<ChangeLog, Long> {
             String lastIp = last == null ? null : last.getIpAddress();
             return asc
                     ? searchByIpAsc(employeeNumber, memo, ipAddress, request.type(),
-                    request.from(), request.to(), lastId, lastIp, pageable)
+                    request.atFrom(), request.atTo(), lastId, lastIp, pageable)
                     : searchByIpDesc(employeeNumber, memo, ipAddress, request.type(),
-                    request.from(), request.to(), lastId, lastIp, pageable);
+                    request.atFrom(), request.atTo(), lastId, lastIp, pageable);
         }
 
         Instant lastCreatedAt = last == null ? null : last.getCreatedAt();
         return asc
                 ? searchByTimeAsc(employeeNumber, memo, ipAddress, request.type(),
-                request.from(), request.to(), lastId, lastCreatedAt, pageable)
+                request.atFrom(), request.atTo(), lastId, lastCreatedAt, pageable)
                 : searchByTimeDesc(employeeNumber, memo, ipAddress, request.type(),
-                request.from(), request.to(), lastId, lastCreatedAt, pageable);
+                request.atFrom(), request.atTo(), lastId, lastCreatedAt, pageable);
     }
 
     // 검색어가 비어 있으면 null, 아니면 \, %, _ 앞에 \ 를 붙여서 그냥 글자로 취급

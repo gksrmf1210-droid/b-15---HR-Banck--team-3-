@@ -9,7 +9,6 @@ public record ChangeLogResponse(
         String employeeNumber,
         String memo,
         String ipAddress,
-        Instant createdAt,
+        Instant at,
         ChangeType type
-) {
-}
+) {}
