@@ -2,6 +2,7 @@ package com.hrbank.hrbank.employee.entity;
 
 import com.hrbank.hrbank.department.entity.Department;
 import com.hrbank.hrbank.entity.BaseEntity;
+import com.hrbank.hrbank.file.entity.FileMeta;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -41,7 +42,12 @@ public class Employee extends BaseEntity {
     @Column(nullable = false)
     private LocalDate hireDate;
 
-    public Employee(String name, String email, String employeeNumber, Department department, String position,LocalDate hireDate){
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_image_id")
+    private FileMeta profileImage;
+
+    public Employee(String name, String email, String employeeNumber, Department department,
+                     String position,LocalDate hireDate){
         this.name =name;
         this.email = email;
         this.employeeNumber = employeeNumber;
@@ -50,12 +56,17 @@ public class Employee extends BaseEntity {
         this.status = EmployeeStatus.ACTIVE;
         this.hireDate = hireDate;
     }
-    public void update(String name, String email,EmployeeStatus status, Department department, String position,LocalDate hireDate){
+    public void update(String name, String email,EmployeeStatus status, Department department,
+                       String position,LocalDate hireDate){
         this.name =name;
         this.email = email;
         this.department = department;
         this.position = position;
         this.status = status;
         this.hireDate = hireDate;
+    }
+    public void changeProfileImage(FileMeta profileImage) {
+        this.profileImage = profileImage;
+
     }
 }
